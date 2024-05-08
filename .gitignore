@@ -56,3 +56,4 @@ rsconnect/
 *.sbn
 *.shp
 *.shx
+/datasets/Mammals_montenegro/data/raw
