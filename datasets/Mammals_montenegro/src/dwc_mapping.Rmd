@@ -206,6 +206,7 @@ occurrence %<>%
     ##select(individualCount) %>%
     mutate(dwc_occurrenceStatus = case_when(dwc_organismQuantity > 0 ~ "Present",
                                         dwc_organismQuantity == 0 ~ "Absent",
+                                        dwc_organismQuantity == ">= 1" ~"present",
                                         is.na(dwc_organismQuantity) ~ "Present" ))
 
 ```
@@ -225,7 +226,7 @@ occurrence %<>%
 ### occurrenceRemarks
 
 ```{r}
-occurrence %<>% rename(dwc_occurrenceRemarks = occurrenceRemarks)
+occurrence %<>% mutate(dwc_occurrenceRemarks = occurrenceRemarks)
 ```
 
 ## samplingProtocol
@@ -235,184 +236,101 @@ occurrence %<>% mutate(samplingEffort = Metoda)
 ```
 
 
-### eventDate
+## eventDate
 
 
 ```{r}
-
-
 occurrence %<>% mutate(dwc_eventDate = eventDate )
 
+```
+## eventTime
+
+```{r}
+occurrence %<>% mutate(dwc_eventTime = time )
 
 ```
+## habiat
+
+```{r}
+occurrence %<>% mutate(dwc_habitat = `tip habitata` )
+
+```
+
 
 # Location
 
 ```{r}
 occurrence %<>%
-  rename(decimalLongitude = X) %>%
-  rename(decimalLatitude = Y) %>%
-  mutate(geodeticDatum = "WGS84") %>%
-  mutate(coordinateUncertaintyInMeters = "30") %>%
-  mutate(verbatimCoordinateSystem = "Lambert coordinates") %>%
-  mutate(verbatimSRS = "Belgian Datum 1972") %>%
-  mutate(countryCode = "BE")  %>%            
+  mutate(dwc_decimalLongitude = decimalLongitude) %>%
+  mutate(dwc_decimalLatitude = decimalLatitude) %>%
+  mutate(dwc_geodeticDatum = "WGS84") %>%
+  mutate(dwc_coordinateUncertaintyInMeters = "30") %>%
+  mutate(countryCode = "YI")  %>%            
   mutate(continent = "Europe")
 ```
 
 ```{r}
 head(occurrence, n = 5)
 occurrence %<>%
-  mutate(verbatimLongitude = round(verbatimLongitude)) %>%
-  mutate(verbatimLatitude = round(verbatimLatitude)) %>%
-  mutate(decimalLongitude = round(decimalLongitude, digits = 5)) %>%
-  mutate(decimalLatitude = round(decimalLatitude, digits = 5))
+  mutate(dwc_decimalLongitude = round(dwc_decimalLongitude, digits = 5)) %>%
+  mutate(dwc_decimalLatitude = round(dwc_decimalLatitude, digits = 5))
 ```
 
 ```{r}
 occurrence %<>%   
-   mutate(decimalLatitude = as.character(format(decimalLatitude, nsmall = 5))) %>%
-   mutate(decimalLongitude = as.character(format(decimalLongitude, nsmall = 5)))
+   mutate(dwc_decimalLatitude = as.character(format(dwc_decimalLatitude, nsmall = 5))) %>%
+   mutate(dwc_decimalLongitude = as.character(format(dwc_decimalLongitude, nsmall = 5)))
 ```
 
-### continent
-
-```{r}
-##occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
-```
-
-### countryCode
-
-```{r}
-#occurrence %<>% mutate(countryCode = "BE") # e.g. "Belgium = BE"
-```
-
-### municipality
-
-municipality already in source file
-
-```{r}
-occurrence %<>%
-  mutate(municipality = str_remove(municipality,"\\(BE\\)"))
-```
-
-### verbatimcoordinates
-
-### verbatimLatitude
-
-### verbatimLongitude
-
-### verbatimcoordinatesystem
-
-```{r}
-#occurrence %<>% mutate(verbatimcoordinatesystem = "Lambert coordinates") # 
-```
-
-### verbatimSRS
-
-```{r}
-#occurrence %<>% mutate(verbatimSRS = "Belgian Datum 1972")
-```
-
-### decimalLatitude
-
-### decimalLongitude
-
-### geodeticDatum
-
-### coordinateUncertaintyInMeters
-
-### georeferenceRemarks
 
 ### identifiedBy
 
 ```{r}
-occurrence %<>% mutate(identifiedBy = 'Province of West Flanders')
+occurrence %<>% mutate(identifiedBy = `Name and surname`)
 ```
 
 ### scientificName 
 
 ```{r}
-occurrence %<>% mutate(scientificName = case_when(kind_nl == 'Muskusrat' ~ "Ondatra zibethicus",
-                                   kind_nl == 'Bruine rat' ~ "Rattus norvegicus"
-                                       )
-                                )
+occurrence %<>% mutate(dwc_scientificName = scientificName)
 ```
+
+## verbatim identification
+
+```{r}
+occurrence %<>% mutate(dwc_verbatimIdentification = `fonetska grupa`)
+```
+
 
 ### kingdom
 
 ```{r}
-occurrence %<>% mutate(kingdom = "Animalia")
-```
-
-### scientificNameAuthorship
-
-```{r}
-occurrence %<>% mutate(scientificNameAuthorship = case_when(kind_nl == 'Muskusrat' ~ "Linnaeus, 1766",
-                                   kind_nl == 'Bruine rat' ~ "Berkenhout, 1759"
-                                       )
-                                )
-
-
+occurrence %<>% mutate(dwc_kingdom = "Animalia")
 ```
 
 ### taxonRank
 
 ```{r}
-occurrence %<>% mutate(taxonRank = "species")
+occurrence %<>% mutate(dwc_taxonRank = taxonRank)
 ```
-
-### nomenclaturalCode
-
-```{r}
-occurrence %<>% mutate(nomenclaturalCode = "ICZN") # e.g. "ICZN"
-```
-
-### occurrenceStatus
-
-```{r}
-occurrence %<>% 
-    ##select(individualCount) %>%
-    mutate(occurrenceStatus = case_when(action_nl == 'Vastgesteld' & individualCount > 0 ~ "Present",
-                                        action_nl == 'Vastgesteld' & individualCount == 0 ~ "Absent",
-                                        action_nl == 'Gevangen' & individualCount > 0 ~ "Present",
-                                        action_nl == 'Gevangen' & individualCount == 0 ~ "Absent",
-                                        action_nl == 'Verwijderd' & individualCount > 0 ~ "Present",
-                                        action_nl == 'Verwijderd' & individualCount == 0 ~ "Absent",
-                                        action_nl == 'Geen vangst' & individualCount > 0 ~ "Present",
-                                        action_nl == 'Geen vangst' & individualCount == 0 ~ "Absent",
-                                        action_nl == 'Sporen' & individualCount > 0 ~ "Present",
-                                        action_nl == 'Sporen' & individualCount == 0 ~ "Absent",
-                                        action_nl == 'Hoeveelheid'& individualCount > 0 ~ "Present",
-                                        action_nl == 'Hoeveelheid'& individualCount == 0 ~ "Absent",
-                                        individualCount > 0 ~ "Present",
-                                        individualCount == 0 ~ "Absent",
-                                        is.na(action_nl) | is.na(individualCount) ~ "Absent"
-                                                  
-                                       ))
-head(occurrence, n = 5)
-```
-
-```{r eval=FALSE, include=FALSE}
-
-occurrence %<>%
-        filter(eventDate > '2018-01-12' & occurrenceStatus == "Present" & scientificName == "Ondatra zibethicus") 
-        
-head (occurrence, n = 5 )
-
-```
-
-
-
-
-
-
 ## Post-processing
+
+Only keep the Darwin Core columns:
+
+```{r}
+occurrence %<>% select(starts_with("dwc_"))
+```
+
+Drop the `dwc_` prefix:
 
 ```{r}
 colnames(occurrence) <- str_remove(colnames(occurrence), "dwc_")
-##occurrence %<>% select(-c(disposition, etiket_ref, collection, scientificName)) %<>% #remove collection columns
-          ##  rename(scientificName = verbatimScientificName) 
+```
+
+Preview data:
+
+```{r}
+occurrence %>% head()
 ```
 
 ```{r}
@@ -421,18 +339,6 @@ occurrence <- mutate_all(occurrence, as.character())
 
 Define the order of the output columns
 
-```{r}
-col_order <- c( "type","language","license","rightsHolder","accessRights","datasetID"
-               ,"institutionCode","datasetName","basisOfRecord","occurrenceID","recordedBy"
-               ,"individualCount","organismQuantity","organismQuantityType","occurrenceStatus","occurrenceRemarks"
-               ,"samplingProtocol","samplingEffort"
-               ,"eventDate","continent","countryCode","municipality"
-               ,"verbatimLatitude","verbatimLongitude","verbatimCoordinateSystem","verbatimSRS"
-               ,"decimalLatitude","decimalLongitude","geodeticDatum","coordinateUncertaintyInMeters"
-               ,"identifiedBy","scientificName","kingdom","scientificNameAuthorship","taxonRank","nomenclaturalCode"
-               )
-occurrence <- occurrence[, col_order]
-```
 
 Preview data:
 
@@ -443,7 +349,7 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "mica-westvlaanderen-occurrences", "data", "processed", "occurrence.csv"), na = "")
+write_delim(occurrence, here::here("datasets", "Mammals_montenegro", "data", "processed", "occurrence.csv"),delim = ";", na = "")
 ```
 
 
