@@ -86,6 +86,9 @@ input_interim %<>% remove_empty("rows")
 ```{r}
 input_interim %>% head(n = 5)
 ```
+# Georeference source data
+
+
 
 
 # Occurrence core
@@ -337,7 +340,24 @@ occurrence %>% head()
 occurrence <- mutate_all(occurrence, as.character())
 ```
 
-Define the order of the output columns
+remove obsolete occurrences
+
+
+```{r}
+#occurrence %>%
+#        filter(is.na(scientificName))
+```
+
+
+nA's are also filtered away
+
+```{r}
+occurrence %<>%
+        filter(occurrence$scientificName != "Nema slijepih miševa")
+        
+#head (occurrence, n = 5 )
+
+```
 
 
 Preview data:
