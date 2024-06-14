@@ -47,13 +47,18 @@ Obsolete columns removed
 some columns renamed to DwC term
 File exported to csv
 
-
 ```{r}
-csv_files <- list.files(here::here("datasets", "Mammals_montenegro", "data", "raw"), pattern = "*.csv$", full.names = TRUE)
+csv_files <- read.delim(here::here("datasets", "Mammals_montenegro", "data", "raw", "test" , "rawMontenegro.csv"), sep = ";")
+```
+ 
+
+
+```{r eval=FALSE, include=FALSE}
+csv_files <- list.files(here::here("datasets", "Mammals_montenegro", "data", "raw", "test"), pattern = "*.csv$", full.names = TRUE)
 
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 data <- lapply(csv_files, read_csv) %>% bind_rows()
 ```
 
@@ -63,7 +68,7 @@ data <- lapply(csv_files, read_csv) %>% bind_rows()
 ```
 
 ```{r}
-input_interim <- data
+input_interim <- csv_files
 ```
 
 
@@ -101,6 +106,9 @@ Create a dataframe occurrence data only
 occurrence <- input_interim
 ```
 
+```{r}
+occurrence <- unique(occurrence)
+```
 
 
 # Term mapping
@@ -114,7 +122,7 @@ Start with record-level terms which contain metadata about the dataset (which is
 ### datasetID
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetID = "https://doi.org/10.15468/XXXXX")
+occurrence %<>% mutate(dwc_datasetID = "https://doi.org/10.15468/jr2me6")
 ```
 
 
@@ -171,19 +179,41 @@ The following terms contain information about the taxon:
 ### basisOfRecord
 
 ```{r}
-occurrence %<>% mutate(dwc_basisOfRecord = case_when(Metoda == 'Camera trap' ~ "machine observation",
+occurrence %<>% mutate(dwc_basisOfRecord = case_when(Metoda == 'Camera trap' ~ "machineObservation",
                                                   .default = "humanObservation" ))
 ```
 
+
 ```{r}
-occurrence %<>% mutate(dwc_occurrenceID = `__id`)
+occurrence %<>% mutate(id_alt = row_number())
+```
+
+```{r}
+
+occurrence %<>% mutate(dwc_occurrenceID1 = X__id)
 
 ```
+```{r}
+
+occurrence %<>% mutate(dwc_catalogueNumber = X__id)
+
+```
+
+
+```{r}
+occurrence %<>% mutate(dwc_occurrenceID2 = paste0(id_alt ,":" ,X__id))
+
+```
+```{r}
+occurrence %<>% mutate(dwc_occurrenceID = paste0("MONT:OCC:", id_alt))
+```
+
+
 
 # recordedBy
 
 ```{r}
-occurrence %<>% mutate(dwc_recordedBy = `Name and surname`)
+occurrence %<>% mutate(dwc_recordedBy = Name.and.surname)
 
 ```
 
@@ -255,7 +285,7 @@ occurrence %<>% mutate(dwc_eventTime = time )
 ## habiat
 
 ```{r}
-occurrence %<>% mutate(dwc_habitat = `tip habitata` )
+occurrence %<>% mutate(dwc_habitat = tip.habitata )
 
 ```
 
@@ -289,7 +319,7 @@ occurrence %<>%
 ### identifiedBy
 
 ```{r}
-occurrence %<>% mutate(identifiedBy = `Name and surname`)
+occurrence %<>% mutate(identifiedBy = Name.and.surname)
 ```
 
 ### scientificName 
@@ -301,7 +331,7 @@ occurrence %<>% mutate(dwc_scientificName = scientificName)
 ## verbatim identification
 
 ```{r}
-occurrence %<>% mutate(dwc_verbatimIdentification = `fonetska grupa`)
+occurrence %<>% mutate(dwc_verbatimIdentification = fonetska.grupa)
 ```
 
 
@@ -358,6 +388,12 @@ occurrence %<>%
 #head (occurrence, n = 5 )
 
 ```
+```{r}
+occurrence <- unique(occurrence)
+```
+
+
+
 
 
 Preview data:
