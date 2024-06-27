@@ -209,26 +209,26 @@ The following terms contain information about the taxon:
 
 
 ```{r}
-occurrence %<>% mutate(dwc_occurrenceID = paste0("NEDKO:SMoY:OBS:", OBJECTID_1))
+occurrence %<>% mutate(dwc_occurrenceID = paste0("NEDKO:SMoBG:OBS:", id))
 ```
 
 ### associatedReferences
 
 ```{r}
-occurrence %<>% mutate(dwc_associatedReferences = "Petrov, Boris M., et al. Mammals of Yugoslavia: insectivores and rodents. Belgrade: Natural history museum, 1992.")
+occurrence %<>% mutate(dwc_associatedReferences = notes)
 ```
 
 
 ### recordedBy
 
 ```{r}
-occurrence %<>% mutate(dwc_recordedBy = dwc_rightsHolder)
+occurrence %<>% mutate(dwc_recordedBy = paste0("Nedko Nedyalkov | BSPB ", otherObservers))
 ```
 
 ### individualCount
 
 ```{r}
-occurrence %<>% mutate(dwc_individualCount = "1")
+occurrence %<>% mutate(dwc_individualCount = count)
 ```
 
 ### occurrenceStatus
@@ -242,7 +242,7 @@ occurrence %<>% mutate(dwc_occurrenceStatus = "present")
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_eventDate = "1991")
+occurrence %<>% mutate(dwc_eventDate = observationDate)
   
 ```
 
@@ -260,25 +260,34 @@ occurrence %<>% mutate(dwc_eventDate = "1991")
 ### countryCode
 
 ```{r}
-occurrence %<>% mutate(dwc_countryCode = "YU")
+occurrence %<>% mutate(dwc_countryCode = "BG")
 ```
 
 ### stateProvince
 
+### locality
+
+```{r}
+occurrence %<>% mutate(dwc_locality = autoLocationEn)
+```
+
 
 ### Municipality
 
+```{r}
+occurrence %<>% mutate(dwc_municipality = location )
+```
 
 ### decimalLatitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLatitude = POINT_Y) 
+occurrence %<>% mutate(dwc_decimalLatitude = latitude) 
 ```
 
 ### decimalLongitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLongitude = POINT_X) 
+occurrence %<>% mutate(dwc_decimalLongitude = longitude) 
 ```
 
 ### geodeticDatum
@@ -289,24 +298,29 @@ occurrence %<>% mutate(dwc_geodeticDatum = "WGS84")
 
 ### coordinateUncertaintyInMeters
 
-```{r}
-occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "7071")
+```{r eval=FALSE, include=FALSE}
+occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
 ```
 
 ### georeferenceRemarks
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 occurrence %<>% mutate(dwc_georeferenceRemarks = "points are centroid of 10km UTM grid")
 ```
 
 
 ### kingdom
 
+```{r}
+occurrence %<>% mutate(dwc_kingdom = "Animalia")
+```
+
+
 
 ### scientificName
 
 ```{r}
-occurrence %<>% mutate(dwc_scientificName = name)
+occurrence %<>% mutate(dwc_scientificName = species)
 ```
 
 
@@ -314,7 +328,7 @@ occurrence %<>% mutate(dwc_scientificName = name)
 ### taxonRank
 
 ```{r}
-occurrence %<>% mutate(dwc_taxonRank = "species")
+occurrence %<>% mutate(dwc_taxonRank = rankmarker)
 
 ```
 
@@ -353,7 +367,7 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "MammalsofYugoslavia1992", "data", "processed", "occurrence.csv"), na = "")
+write_csv(occurrence, here::here("datasets", "mammalsBulgaria", "data", "processed", "occurrence.csv"), na = "")
 
 ```
 
