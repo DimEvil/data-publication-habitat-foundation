@@ -37,7 +37,7 @@ library(mapview)
 Create a data frame `input_data` from the source data:
 
 ```{r}
-input_data <- read.csv(here::here("datasets", "mammalsBulgaria", "data", "raw", "mammalsbulgaria.xlsx"))
+input_data <- read_excel(here::here("datasets", "mammalsBulgaria", "data", "raw", "mammalsbulgaria.xlsx"))
 ```
 
 Preview data:
@@ -72,7 +72,7 @@ Use the [GBIF nameparser](https://www.gbif.org/tools/name-parser) to retrieve no
 
 ```{r}
 parsed_names <- input_data %>%
-  distinct(`name`) %>%
+  distinct(`species`) %>%
   pull() %>% # Create vector from dataframe
   parsenames() # An rgbif function
 ```
@@ -98,17 +98,22 @@ The nameparser function also provides information about the rank of the taxon (i
 input_data %<>% left_join(
   parsed_names %>%
   select(scientificname, rankmarker),
-  by = c("name" = "scientificname"))
+  by = c("species" = "scientificname"))
 ```
 
 ```{r}
 # Adjust rankmarker
-#input_data %<>% mutate(rankmarker = recode(verbatimScientificName,
-#  "Monilearia spec." = "genus",
-#  "Hemicycla spec." = "genus",
-#  "Napaeus spec." = "genus",
-#  .default = rankmarker
-##))
+input_data %<>% mutate(rankmarker = recode(species,
+  "Apodemus sp." = "genus",
+  "Mus sp." = "genus",
+  "Napaeus spec." = "genus",
+  "Microtus sp." = "genus",
+  "Rattus sp." = "genus",
+  "Crocidura sp." = "genus",
+  "Neomys sp." = "genus",
+  "Plecotus sp." = "genus",
+  .default = rankmarker
+))
 ```
 
 ## Taxon IDs (not applicable)
@@ -170,7 +175,7 @@ occurrence %<>% mutate(dwc_license = "http://creativecommons.org/publicdomain/ze
 ### rightsHolder
 
 ```{r}
-occurrence %<>% mutate(dwc_rightsHolder = "Belgrade : Natural History Museum")
+occurrence %<>% mutate(dwc_rightsHolder = "Bulgarian Society for the Protection of Birds")
 ```
 
 ### datasetID
@@ -182,19 +187,20 @@ occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10
 ### institutionCode
 
 ```{r}
-occurrence %<>% mutate(dwc_institutionCode = "Belgrade : Natural History Museum")
+occurrence %<>% mutate(dwc_institutionCode = "Bulgarian Society for the Protection of Birds")
 ```
 
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "Small mammals of Yugoslavia, 1992")
+occurrence %<>% mutate(dwc_datasetName = "Small mammals of Bulgaria")
 ```
 
 ### basisOfRecord
 
 ```{r}
-occurrence %<>% mutate(dwc_basisOfRecord = "materialSample")
+occurrence %<>% mutate(dwc_basisOfRecord = case_when(sourceEn == 'Literature data' ~ "materialSample",
+                                                      .default = as.character("humanObservation")))
 ```
 
 The following terms contain information about the taxon:
