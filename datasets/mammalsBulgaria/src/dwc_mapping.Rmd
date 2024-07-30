@@ -357,6 +357,14 @@ Drop the `dwc_` prefix:
 colnames(occurrence) <- str_remove(colnames(occurrence), "dwc_")
 ```
 
+MAke sure records are unique
+
+```{r}
+occurrence <- unique(occurrence)
+```
+
+
+
 Preview data:
 
 ```{r}
