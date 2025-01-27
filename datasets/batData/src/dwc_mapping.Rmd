@@ -1,6 +1,6 @@
 ---
 title: "Darwin Core mapping"
-subtitle: "For: Mammals Bulgaria"
+subtitle: "For: Bat Data Bulgaria"
 author:
 - Dimitri Brosens
 date: "`r Sys.Date()`"
@@ -37,7 +37,7 @@ library(mapview)
 Create a data frame `input_data` from the source data:
 
 ```{r}
-input_data <- read_excel(here::here("datasets", "mammalsBulgaria", "data", "raw", "mammalsbulgaria.xlsx"))
+input_data <- read_excel(here::here("datasets", "batData", "data", "raw", "bat_data_Bg_NT.xlsx"))
 ```
 
 Preview data:
@@ -104,14 +104,12 @@ input_data %<>% left_join(
 ```{r}
 # Adjust rankmarker
 input_data %<>% mutate(rankmarker = recode(species,
-  "Apodemus sp." = "genus",
-  "Mus sp." = "genus",
-  "Napaeus spec." = "genus",
-  "Microtus sp." = "genus",
-  "Rattus sp." = "genus",
-  "Crocidura sp." = "genus",
-  "Neomys sp." = "genus",
+  "Myotis myotis/blythii" = "genus",
+  "Myotis sp." = "genus",
+  "Rhinolophus sp." = "genus",
+  "Pipistrellus sp." = "genus",
   "Plecotus sp." = "genus",
+  "P.kuhlii/P.nathusii" = "genus",
   .default = rankmarker
 ))
 ```
@@ -175,7 +173,7 @@ occurrence %<>% mutate(dwc_license = "http://creativecommons.org/publicdomain/ze
 ### rightsHolder
 
 ```{r}
-occurrence %<>% mutate(dwc_rightsHolder = "Bulgarian Society for the Protection of Birds")
+occurrence %<>% mutate(dwc_rightsHolder = "Bulgarian Bat data")
 ```
 
 ### datasetID
@@ -187,18 +185,23 @@ occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10
 ### institutionCode
 
 ```{r}
-occurrence %<>% mutate(dwc_institutionCode = "Bulgarian Society for the Protection of Birds")
+occurrence %<>% mutate(dwc_institutionCode = "Bulgarian Bat Society")
 ```
 
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "Small mammals of Bulgaria")
+occurrence %<>% mutate(dwc_datasetName = "Bat data of Bulgaria")
 ```
 
 ### basisOfRecord
 
 ```{r}
+occurrence %<>% mutate(dwc_basisOfRecord = "HumanObservation")
+```
+
+
+```{r eval=FALSE, include=FALSE}
 occurrence %<>% mutate(dwc_basisOfRecord = case_when(sourceEn == 'Literature data' ~ "materialSample",
                                                       .default = as.character("humanObservation")))
 ```
@@ -209,12 +212,12 @@ The following terms contain information about the taxon:
 
 
 ```{r}
-occurrence %<>% mutate(dwc_occurrenceID = paste0("NEDKO:SMoBG:OBS:", id))
+occurrence %<>% mutate(dwc_occurrenceID = paste0("BUL:BAT:OBS:", row_number()))
 ```
 
 ### associatedReferences
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 occurrence %<>% mutate(dwc_associatedReferences = notes)
 ```
 
@@ -222,19 +225,20 @@ occurrence %<>% mutate(dwc_associatedReferences = notes)
 ### recordedBy
 
 ```{r}
-occurrence %<>% mutate(dwc_recordedBy = paste0("Nedko Nedyalkov | BSPB ", otherObservers))
-```
+occurrence %<>% mutate(dwc_recordedBy = paste0(`data owner 1`, " | ", `data owner 2`, " | ", `data owner 3`))
+``` 
 
 ### individualCount
 
 ```{r}
-occurrence %<>% mutate(dwc_individualCount = count)
+occurrence %<>% mutate(dwc_individualCount = counts)
 ```
 
 ### occurrenceStatus
 
 ```{r}
-occurrence %<>% mutate(dwc_occurrenceStatus = "present")
+occurrence %<>% mutate(dwc_occurrenceStatus = case_when(counts > 0 ~"present",
+                                                        counts == 0 ~"absent"))
 ```
 
 
@@ -242,7 +246,7 @@ occurrence %<>% mutate(dwc_occurrenceStatus = "present")
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_eventDate = observationDate)
+occurrence %<>% mutate(dwc_eventDate = format(dmy(`date (DD/MM/YYYY)`), "%Y-%m-%d"))
   
 ```
 
@@ -250,8 +254,15 @@ occurrence %<>% mutate(dwc_eventDate = observationDate)
 
 ### samplingProtocol
 
+```{r}
+occurrence %<>% mutate(dwc_samplingProtocol = method)
+```
+
+
 
 ### samplingEffort
+
+
  
 
 ### locationID
@@ -268,27 +279,50 @@ occurrence %<>% mutate(dwc_countryCode = "BG")
 ### locality
 
 ```{r}
-occurrence %<>% mutate(dwc_locality = autoLocationEn)
+occurrence %<>% mutate(dwc_locality = `site name`)
 ```
 
 
 ### Municipality
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 occurrence %<>% mutate(dwc_municipality = location )
 ```
 
 ### decimalLatitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLatitude = latitude) 
+occurrence %<>% mutate(dwc_decimalLatitude = `latitude (decimal degrees, YY.YYYYY)`) 
 ```
 
 ### decimalLongitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLongitude = longitude) 
+occurrence %<>% mutate(dwc_decimalLongitude = `longitude (decimal degrees, XX.XXXXX)` ) 
 ```
+
+### altitude
+
+```{r}
+occurrence %<>% mutate(dwc_minimumElevationInMeters = `alt (m)` ) 
+```
+
+```{r}
+occurrence %<>% mutate(dwc_maximumElevationInMeters = `alt (m)` ) 
+```
+
+
+```{r}
+occurrence %<>% mutate(dwc_verbatimElevation = `alt (m)` ) 
+```
+
+### locationRemarks
+
+```{r}
+occurrence %<>% mutate(dwc_locationRemarks = `site type` ) 
+```
+
+
 
 ### geodeticDatum
 
@@ -317,11 +351,28 @@ occurrence %<>% mutate(dwc_kingdom = "Animalia")
 
 
 
-### scientificName
+### scientificName & previous identifications
 
 ```{r}
-occurrence %<>% mutate(dwc_scientificName = species)
+occurrence %<>% mutate(dwc_previousIdentifications = species)
 ```
+
+
+
+```{r}
+# Adjust scientificName
+input_data %<>% mutate(scientificName = recode(species,
+  "Myotis myotis/blythii" = "Myotis",
+  "Myotis sp." = "Myotis",
+  "Rhinolophus sp." = "Rhinolophus",
+  "Pipistrellus sp." = "Pipistrellus",
+  "Plecotus sp." = "Plecotus",
+  "P.kuhlii/P.nathusii" = "Pipistrellus",
+  .default = species
+))
+```
+
+
 
 
 
@@ -343,6 +394,9 @@ occurrence %<>% mutate(dwc_taxonRank = rankmarker)
 occurrence %<>% mutate(dwc_nomenclaturalCode = "ICZN")
 ```
 
+
+
+
 ## Post-processing
 
 Only keep the Darwin Core columns:
@@ -363,6 +417,15 @@ MAke sure records are unique
 occurrence <- unique(occurrence)
 ```
 
+```{r}
+occurrence <- occurrence %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), " ", .)))
+```
+
+```{r}
+occurrence <- occurrence %>% drop_na()
+```
+
 
 
 Preview data:
@@ -375,7 +438,7 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "mammalsBulgaria", "data", "processed", "occurrence.csv"), na = "")
+write_csv(occurrence, here::here("datasets", "batData", "data", "processed", "occurrence.csv"), na = "")
 
 ```
 
