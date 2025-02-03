@@ -176,7 +176,7 @@ occurrence %<>% mutate(dwc_rightsHolder = "Belgrade : Natural History Museum")
 ### datasetID
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10.15468/xvuzfh"
+occurrence %<>% mutate(dwc_datasetID = "https://doi.org/10.15468/7cpnhn") # e.g. "https://doi.org/10.15468/xvuzfh"
 ```
 
 ### institutionCode
@@ -230,7 +230,11 @@ occurrence %<>% mutate(dwc_individualCount = "1")
 ```{r}
 occurrence %<>% mutate(dwc_occurrenceStatus = "present")
 ```
+### occurrenceRemarks
 
+```{r}
+occurrence %<>% mutate(dwc_occurrenceRemarks = "data is arbitrarily chosen, as no data of the occurrence was digitized")
+```
 
 
 ### eventDate

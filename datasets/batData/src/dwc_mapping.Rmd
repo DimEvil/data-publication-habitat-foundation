@@ -224,6 +224,8 @@ occurrence %<>% mutate(dwc_associatedReferences = notes)
 
 ### recordedBy
 
+
+
 ```{r}
 occurrence %<>% mutate(dwc_recordedBy = paste0(`data owner 1`, " | ", `data owner 2`, " | ", `data owner 3`))
 ``` 
@@ -418,8 +420,18 @@ occurrence <- unique(occurrence)
 ```
 
 ```{r}
+occurrence <- lapply(occurrence, as.character) 
+```
+
+
+```{r}
 occurrence <- occurrence %>%
-  mutate(across(everything(), ~ ifelse(is.na(.), " ", .)))
+  mutate(across(where(is.factor), as.character))
+```
+
+```{r}
+occurrence <- occurrence %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), , .)))
 ```
 
 ```{r}
