@@ -240,7 +240,7 @@ occurrence %<>% mutate(dwc_EventRemarks = "no eventDate of the occurrence was di
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_verbatimEventDate = "1991")
+occurrence %<>% mutate(dwc_verbatimEventDate = " < 1992")
   
 ```
 
