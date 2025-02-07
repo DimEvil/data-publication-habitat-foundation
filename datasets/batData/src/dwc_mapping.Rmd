@@ -37,7 +37,7 @@ library(mapview)
 Create a data frame `input_data` from the source data:
 
 ```{r}
-input_data <- read_excel(here::here("datasets", "batData", "data", "raw", "bat_data_Bg_NT.xlsx"))
+input_data <- read_excel(here::here("datasets", "batData", "data", "raw", "bat_data_Bg_NT_v2.xlsx"))
 ```
 
 Preview data:
@@ -212,6 +212,11 @@ The following terms contain information about the taxon:
 
 
 ```{r}
+occurrence %<>% mutate(dwc_occurrenceID = ID)
+```
+
+
+```{r eval=FALSE, include=FALSE}
 occurrence %<>% mutate(dwc_occurrenceID = paste0("BUL:BAT:OBS:", row_number()))
 ```
 
@@ -224,11 +229,36 @@ occurrence %<>% mutate(dwc_associatedReferences = notes)
 
 ### recordedBy
 
-
+this piece will also remove the "|"
 
 ```{r}
-occurrence %<>% mutate(dwc_recordedBy = paste0(`data owner 1`, " | ", `data owner 2`, " | ", `data owner 3`))
+
+occurrence %<>% mutate(
+  dwc_recordedBy = apply(select(., `data owner 1`, `data owner 2`, `data owner 3`), 1, function(x) paste(discard(x, is.na), collapse = " | "))
+)
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+occurrence %<>% mutate(
+  dwc_recordedBy = paste0(
+    coalesce(`data owner 1`, ""), " | ",
+    coalesce(`data owner 2`, ""), " | ",
+    coalesce(`data owner 3`, "")
+  )
+)
+```
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+occurrence %<>% mutate(dwc_recordedBy = paste0(`data owner 1`, " | ", `data owner 2`, " | ", `data owner 3`)) %>% 
 ``` 
+
+
+
 
 ### individualCount
 
@@ -419,18 +449,26 @@ MAke sure records are unique
 occurrence <- unique(occurrence)
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
+occurrence <- occurrence %<>%
+  mutate(across(everything(), ~ ifelse(is.na(.), , .)))
+```
+
+
+## this is changing Df to something we dont need
+```{r eval=FALSE, include=FALSE}
 occurrence <- lapply(occurrence, as.character) 
 ```
 
 
+
 ```{r}
-occurrence <- occurrence %>%
+occurrence <- occurrence %<>%
   mutate(across(where(is.factor), as.character))
 ```
 
-```{r}
-occurrence <- occurrence %>%
+```{r eval=FALSE, include=FALSE}
+occurrence <- occurrence %<>%
   mutate(across(everything(), ~ ifelse(is.na(.), , .)))
 ```
 
