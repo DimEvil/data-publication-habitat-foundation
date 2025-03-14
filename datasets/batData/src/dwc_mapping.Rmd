@@ -37,7 +37,7 @@ library(mapview)
 Create a data frame `input_data` from the source data:
 
 ```{r}
-input_data <- read_csv(here::here("datasets", "batData", "data", "raw", "bat-data-Bg-NT-v2Refine.csv"))
+input_data <- read_csv(here::here("datasets", "batData", "data", "raw", "bat-data-Bg-NT-20250207Refine.csv"))
 ```
 
 Preview data:
@@ -324,13 +324,13 @@ occurrence %<>% mutate(dwc_municipality = location )
 ### decimalLatitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLatitude = `latitude (decimal degrees, YY.YYYYY)`) 
+occurrence %<>% mutate(dwc_decimalLatitude = decimalLatitude) 
 ```
 
 ### decimalLongitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLongitude = `longitude (decimal degrees, XX.XXXXX)` ) 
+occurrence %<>% mutate(dwc_decimalLongitude = decimalLongitude ) 
 ```
 
 ### altitude
