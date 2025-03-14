@@ -231,7 +231,7 @@ occurrence %<>% mutate(dwc_associatedReferences = notes)
 
 this piece will also remove the "|"
 
-```{r eval=FALSE, include=FALSE}
+```{r include=FALSE}
 
 occurrence %<>% mutate(
   dwc_recordedBy = apply(select(., `data owner 1`, `data owner 2`, `data owner 3`), 1, function(x) paste(discard(x, is.na), collapse = " | "))
@@ -240,7 +240,7 @@ occurrence %<>% mutate(
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 occurrence %<>% mutate(
   dwc_recordedBy = paste0(
     coalesce(`data owner 1`, ""), " | ",
