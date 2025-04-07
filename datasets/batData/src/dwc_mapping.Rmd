@@ -110,6 +110,7 @@ input_data %<>% mutate(rankmarker = recode(species,
   "Pipistrellus sp." = "genus",
   "Plecotus sp." = "genus",
   "P.kuhlii/P.nathusii" = "genus",
+  "Myotis myotis/blythii complex" = "infraspecies",
   .default = rankmarker
 ))
 ```
@@ -173,19 +174,19 @@ occurrence %<>% mutate(dwc_license = "http://creativecommons.org/publicdomain/ze
 ### rightsHolder
 
 ```{r}
-occurrence %<>% mutate(dwc_rightsHolder = "Bulgarian Bat data")
+occurrence %<>% mutate(dwc_rightsHolder = "National Museum of Natural History, Bulgarian Academy of Sciences")
 ```
 
 ### datasetID
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10.15468/xvuzfh"
+occurrence %<>% mutate(dwc_datasetID = "https://doi.org/10.15468/dnu63p") # e.g. "https://doi.org/10.15468/xvuzfh"
 ```
 
 ### institutionCode
 
 ```{r}
-occurrence %<>% mutate(dwc_institutionCode = "Bulgarian Bat Society")
+occurrence %<>% mutate(dwc_institutionCode = "NMNHS")
 ```
 
 ### datasetName
@@ -235,6 +236,17 @@ this piece will also remove the "|"
 
 occurrence %<>% mutate(
   dwc_recordedBy = apply(select(., `data owner 1`, `data owner 2`, `data owner 3`), 1, function(x) paste(discard(x, is.na), collapse = " | "))
+)
+
+```
+
+
+### identifiedBy
+
+```{r include=FALSE}
+
+occurrence %<>% mutate(
+  dwc_identifiedBY = apply(select(., `data owner 1`, `data owner 2`, `data owner 3`), 1, function(x) paste(discard(x, is.na), collapse = " | "))
 )
 
 ```
@@ -386,14 +398,14 @@ occurrence %<>% mutate(dwc_kingdom = "Animalia")
 ### scientificName & previous identifications
 
 ```{r}
-occurrence %<>% mutate(dwc_previousIdentifications = species)
+occurrence %<>% mutate(dwc_verbatimIdentification = species)
 ```
 
 
 
 ```{r}
 # Adjust scientificName
-input_data %<>% mutate(scientificName = recode(species,
+occurrence %<>% mutate(dwc_scientificName = recode(species,
   "Myotis myotis/blythii" = "Myotis",
   "Myotis sp." = "Myotis",
   "Rhinolophus sp." = "Rhinolophus",
@@ -404,7 +416,11 @@ input_data %<>% mutate(scientificName = recode(species,
 ))
 ```
 
+## order
 
+```{r}
+occurrence %<>% mutate(dwc_order = "Chiroptera")
+```
 
 
 
@@ -414,6 +430,18 @@ input_data %<>% mutate(scientificName = recode(species,
 occurrence %<>% mutate(dwc_taxonRank = rankmarker)
 
 ```
+
+```{r}
+occurrence %<>% mutate(
+  dwc_taxonRank = case_when(
+    rankmarker == "sp." ~ "species",
+    TRUE ~ rankmarker
+  )
+)
+
+```
+
+
 
 ### scientificNameAuthorship
 
