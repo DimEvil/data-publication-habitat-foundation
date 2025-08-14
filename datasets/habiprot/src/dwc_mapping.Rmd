@@ -181,7 +181,7 @@ occurrence %<>% mutate(dwc_samplingEffort = case_when(
 ### countryCode
 
 ```{r}
-occurrence %<>% mutate(dwc_countryCode = "AL")
+occurrence %<>% mutate(dwc_countryCode = "RS")
 ```
 
 ### stateProvince
@@ -193,13 +193,13 @@ occurrence %<>% mutate(dwc_countryCode = "AL")
 ### decimalLatitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLatitude = lat) 
+occurrence %<>% mutate(dwc_decimalLatitude = latitude) 
 ```
 
 ### decimalLongitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLongitude = lng) 
+occurrence %<>% mutate(dwc_decimalLongitude = longitude) 
 ```
 
 ### geodeticDatum
@@ -211,37 +211,36 @@ occurrence %<>% mutate(dwc_geodeticDatum = "WGS84")
 ### coordinateUncertaintyInMeters
 
 ```{r}
-occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
+occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "7071")
 ```
 
 ### georeferenceRemarks
 
-```{r eval=FALSE, include=FALSE}
-occurrence %<>% mutate(dwc_georeferenceRemarks = case_when(
-  endsWith(Coor_prox, "Yes") ~ "coordinates are centroid of municipality",
-  endsWith(Coor_prox, "No") ~ "exact coordinates",
-  TRUE ~ NA_character_
-))
+```{r include=FALSE}
+occurrence %<>% mutate(dwc_georeferenceRemarks = "coordinates are centroid of UTM10km square"
+  )
 ```
 
 ### kingdom
 
+```{r}
+occurrence %<>% mutate(dwc_kingdom = "Animalia")
+```
+
+
 
 ### scientificName
+
+```{r}
+occurrence %<>% mutate(dwc_scientificName = species)
+```
+
 
 
 ### taxonRank
 
 ```{r}
-#occurrence %<>% mutate(dwc_taxonRank = "species")
-
-
-occurrence %<>% 
-    ##select(individualCount) %>%
-    mutate(taxonRank = case_when(dwc_scientificName == 'Anas' ~ "Genus",
-                                 .default = `species type`       
-                                                  
-                                       ))
+occurrence %<>% mutate(dwc_taxonRank = "species")
 
 ```
 
@@ -253,6 +252,11 @@ occurrence %<>%
 ```{r}
 occurrence %<>% mutate(dwc_nomenclaturalCode = "ICZN")
 ```
+
+
+
+
+
 
 ## Post-processing
 
