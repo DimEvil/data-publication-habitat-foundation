@@ -1,6 +1,6 @@
 ---
 title: "Darwin Core mapping"
-subtitle: "For: Albania Bird Counting"
+subtitle: "For: HabiProt Counting"
 author:
 - Dimitri Brosens
 date: "`r Sys.Date()`"
@@ -35,8 +35,8 @@ library(lubridate)      # to transform the date
 
 Create a data frame `input_data` from the source data:
 
-```{r}
-input_data <- read_excel(here::here("datasets", "albania2", "data", "raw", "PPNEA_raw.xlsx"), guess_max = 400000)
+```{r include=FALSE}
+input_data <- read_excel(here::here("datasets", "habiprot", "data", "raw", "HabiProtData.xlsx"), guess_max = 400000)
 ```
 
 Preview data:
@@ -55,104 +55,6 @@ Clean data somewhat:
 input_data %<>% remove_empty("rows")
 ```
 
-
-
-## Scientific names (not applicable)
-
-Add columns:
-
-```{r}
-input_data %<>%
-  mutate(dwc_kingdom = "Animalia") 
-```
-
-Use the [GBIF nameparser](https://www.gbif.org/tools/name-parser) to retrieve nomenclatural information for the scientific names in the dataset:
-
-
-```{r}
-parsed_names <- input_data %>%
-  distinct(`scientific name`) %>%
-  pull() %>% # Create vector from dataframe
-  parsenames() # An rgbif function
-```
-
-Show scientific names with nomenclatural issues, i.e. not of `type = SCIENTIFIC` or that could not be fully parsed. Note: these are not necessarily incorrect.
-
-```{r}
-parsed_names %>%
-  select(scientificname, type, parsed, parsedpartially, rankmarker) %>%
-  filter(!(type == "SCIENTIFIC" & parsed == "TRUE" & parsedpartially == "FALSE"))
-```
-
-Correct names and reparse:
-
-##all names are correct
-
-```{r}
-input_data %<>% 
-    mutate(dwc_scientificName =  recode(`scientific name`,'Anas sp' = "Anas",
-                                                                                     ))
-```
-
-
-```{r correct and reparse, eval = FALSE}
-
-# Redo parsing
-parsed_names <- input_data %>%
-  distinct(dwc_scientificName) %>%
-  pull() %>%
-  parsenames()
-
-# Show names with nomenclatural issues again
-parsed_names %>%
-  select(scientificname, type, parsed, parsedpartially, rankmarker) %>%
-  filter(!(type == "SCIENTIFIC" & parsed == "TRUE" & parsedpartially == "FALSE"))
-```
-
-## Taxon ranks (not applicable)
-
-The nameparser function also provides information about the rank of the taxon (in `rankmarker`). Here we join this information with our checklist. Cleaning these ranks will done in the Taxon Core mapping:
-
-```{r}
-input_data %<>% left_join(
-  parsed_names %>%
-  select(scientificname, rankmarker),
-  by = c("dwc_scientificName" = "scientificname"))
-```
-
-```{r}
-# Adjust rankmarker
-#input_data %<>% mutate(rankmarker = recode(verbatimScientificName,
-#  "Monilearia spec." = "genus",
-#  "Hemicycla spec." = "genus",
-#  "Napaeus spec." = "genus",
-#  .default = rankmarker
-##))
-```
-
-## Taxon IDs (not applicable)
-
-
-
-## Preview data
-
-Show the number of taxa and distributions per kingdom and rank:
-
-```{r}
-#input_data %>%
-#  group_by(kingdom, rankmarker) %>%
-#  summarize(
-#    `# taxa` = n_distinct(taxon_id),
-#    `# distributions` = n()
-#  ) %>%
-#  adorn_totals("row")
-```
-
-Preview data:
-
-```{r}
-input_data %>% head()
-```
 
 # Darwin Core mapping
 
@@ -183,13 +85,13 @@ occurrence %<>% mutate(dwc_language = "en")
 ### license
 
 ```{r}
-occurrence %<>% mutate(dwc_license = "http://creativecommons.org/publicdomain/zero/1.0/")
+occurrence %<>% mutate(dwc_license = "https://creativecommons.org/licenses/by-nc/4.0/")
 ```
 
 ### rightsHolder
 
 ```{r}
-occurrence %<>% mutate(dwc_rightsHolder = "PPNEA")
+occurrence %<>% mutate(dwc_rightsHolder = "HabiProt")
 ```
 
 ### datasetID
@@ -201,13 +103,13 @@ occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10
 ### institutionCode
 
 ```{r}
-occurrence %<>% mutate(dwc_institutionCode = "PPNEA")
+occurrence %<>% mutate(dwc_institutionCode = "HabiProt")
 ```
 
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "Name to be decided")
+occurrence %<>% mutate(dwc_datasetName = "Artropod observations derived from HabiProt Alciphron database in Serbia")
 ```
 
 ### basisOfRecord
@@ -220,32 +122,39 @@ The following terms contain information about the taxon:
 
 ### occurrenceID
 
-```{r}
-occurrence %<>% mutate(id = row_number())
-```
 
 
 ```{r}
-occurrence %<>% mutate(dwc_occurrenceID = paste0("PPNEA:BIRDS2:OBS:", id))
+occurrence %<>% mutate(dwc_occurrenceID = paste0("HABIPROT:OBS:", id))
 ```
 
 ### recordedBy
 
 ```{r}
-occurrence %<>% mutate(dwc_recordedBy = dwc_rightsHolder)
+occurrence %<>% mutate(dwc_recordedBy = author)
 ```
 
 ### individualCount
 
 ```{r}
-occurrence %<>% mutate(dwc_individualCount = number)
+occurrence %<>% mutate(dwc_individualCount = ifelse(as.numeric(number) == 0, NA, as.numeric(number)))
 ```
 
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_eventDate = format(as.Date(date, format = "%d.%m.%Y"),"%Y/%m/%d"))
-  
+occurrence <- occurrence %<>% 
+  mutate(
+    # eerst alles naar character
+    date_char = as.character(date),
+    # detecteer getallen (Excel serials) en zet om
+    dwc_eventDate = ifelse(
+      suppressWarnings(!is.na(as.numeric(date_char))),
+      format(as.Date(as.numeric(date_char), origin = "1899-12-30"), "%Y-%m-%d"),
+      format(parse_date_time(date_char, orders = c("Ymd", "Y-m-d", "d/m/Y", "d-m-Y")), "%Y-%m-%d")
+    )
+  ) %>%
+  select(-date_char) # hulpkolom weg
 ```
 
 
