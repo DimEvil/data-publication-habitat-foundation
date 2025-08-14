@@ -31,6 +31,7 @@ library(rgbif)          # To use GBIF services
 library(lubridate)      # to transform the date
 library(mapview)
 library(mgrs)
+library(stringr)
 ```
 
 # Read source data
@@ -191,13 +192,6 @@ occurrence %<>% mutate(dwc_samplingProtocol = "casual observation")
 
 ### samplingEffort
  
-```{r eval=FALSE, include=FALSE}
-occurrence %<>% mutate(dwc_samplingEffort = case_when(
-  !is.na(Mandagen) ~ paste("daysOfWork:", round(Mandagen, digits = 2)),
-  !is.na(Val_aantal) ~ paste("numberOfTraps:", floor(Val_aantal)),
-  TRUE ~ ""
-))
-```
 
 ### locationID
 
@@ -223,43 +217,32 @@ occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
 ### decimalLatitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLatitude = latitude) 
+occurrence %<>% mutate(dwc_decimalLatitude_verb = latitude) 
 ```
 
 ### decimalLongitude
 
 ```{r}
-occurrence %<>% mutate(dwc_decimalLongitude = longitude) 
+occurrence %<>% mutate(dwc_decimalLongitude_verb = longitude) 
 ```
+
+
 
 
 #transformcoordinates again
 
-```{r}
-occurrence <- occurrence %>%
-  rowwise() %>%
-  mutate(
-    # Full MGRS code, adjust '34T' if needed
-    mgrs_full = paste0("34T", utm),
-    
-    # Convert MGRS 10 km code to UTM centroid
-    centroid_utm = list(mgrs_to_utm(mgrs_full, precision = 10000)),
-    
-    # Extract easting/northing
-    easting  = centroid_utm$easting,
-    northing = centroid_utm$northing,
-    
-    # Convert to sf point and transform to WGS84
-    coords = list(st_transform(st_sfc(st_point(c(easting, northing)), crs = 32634), 4326)),
-    
-    # Extract decimal lat/lon
-    decimalLongitude = st_coordinates(coords)[1],
-    decimalLatitude  = st_coordinates(coords)[2]
-  ) %>%
-  ungroup() %>%
-  select(-mgrs_full, -centroid_utm, -easting, -northing, -coords)
-```
 
+```{r}
+occurrence %<>%
+  mutate(
+    utm = as.character(utm),               # your short code column
+    mgrs_full = paste0("34T", utm),       # full 8-char MGRS code
+    latlng = lapply(mgrs_full, mgrs_to_latlng),   # convert to lat/lon
+    dwc_decimalLatitude  = sapply(latlng, `[[`, 2),   # extract lat
+    dwc_decimalLongitude = sapply(latlng, `[[`, 3)    # extract lon
+  ) 
+ # select(-mgrs_full, -latlng)
+```
 
 
 
@@ -374,8 +357,22 @@ occurrenceMap <- occurrence
 ```
 
 ```{r}
+occurrenceMap <- occurrenceMap %>%
+  filter(!is.na(decimalLatitude) & !is.na(decimalLongitude))
+```
+
+```{r}
+occurrenceMap <- occurrenceMap %>%
+  group_by(decimalLongitude, decimalLatitude) %>%
+  summarise(occurrences = n(), .groups = "drop") %>%
+  select(decimalLongitude, decimalLatitude, occurrences)
+```
+
+
+```{r}
 occurrenceMap$decimalLatitude <- as.numeric(occurrenceMap$decimalLatitude)
 ```
+
 
 ```{r}
 occurrenceMap$decimalLongitude <- as.numeric(occurrenceMap$decimalLongitude)
