@@ -29,6 +29,8 @@ library(readxl)         # To read Excel files
 library(digest)         # To generate hashes
 library(rgbif)          # To use GBIF services
 library(lubridate)      # to transform the date
+library(mapview)
+library(mgrs)
 ```
 
 # Read source data
@@ -134,6 +136,14 @@ occurrence %<>% mutate(dwc_occurrenceID = paste0("HABIPROT:OBS:", id))
 occurrence %<>% mutate(dwc_recordedBy = author)
 ```
 
+### identifiedBy
+
+```{r}
+occurrence %<>% mutate(dwc_identifiedBy = identifier)
+```
+
+
+
 ### individualCount
 
 ```{r}
@@ -157,6 +167,20 @@ occurrence <- occurrence %<>%
   select(-date_char) # hulpkolom weg
 ```
 
+### lifeStage
+
+```{r}
+occurrence %<>% mutate(
+    dwc_lifestage = case_when(
+      stadium == "I" ~ "Imago",
+      stadium == "O" ~ "ovum",
+      stadium == "L" ~ "larva",
+      stadium == "P" ~ "pupa",
+      stadium == "M" ~ "dead specimen",
+      TRUE ~ NA_character_  # alles wat niet in de lijst staat wordt NA
+    )
+  )
+```
 
 
 ### samplingProtocol
@@ -184,6 +208,12 @@ occurrence %<>% mutate(dwc_samplingEffort = case_when(
 occurrence %<>% mutate(dwc_countryCode = "RS")
 ```
 
+### continent
+
+```{r}
+occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
+```
+
 ### stateProvince
 
 
@@ -202,11 +232,63 @@ occurrence %<>% mutate(dwc_decimalLatitude = latitude)
 occurrence %<>% mutate(dwc_decimalLongitude = longitude) 
 ```
 
+
+#transformcoordinates again
+
+```{r}
+occurrence <- occurrence %>%
+  rowwise() %>%
+  mutate(
+    # Full MGRS code, adjust '34T' if needed
+    mgrs_full = paste0("34T", utm),
+    
+    # Convert MGRS 10 km code to UTM centroid
+    centroid_utm = list(mgrs_to_utm(mgrs_full, precision = 10000)),
+    
+    # Extract easting/northing
+    easting  = centroid_utm$easting,
+    northing = centroid_utm$northing,
+    
+    # Convert to sf point and transform to WGS84
+    coords = list(st_transform(st_sfc(st_point(c(easting, northing)), crs = 32634), 4326)),
+    
+    # Extract decimal lat/lon
+    decimalLongitude = st_coordinates(coords)[1],
+    decimalLatitude  = st_coordinates(coords)[2]
+  ) %>%
+  ungroup() %>%
+  select(-mgrs_full, -centroid_utm, -easting, -northing, -coords)
+```
+
+
+
+
+
 ### geodeticDatum
 
 ```{r}
 occurrence %<>% mutate(dwc_geodeticDatum = "WGS84")
 ```
+
+### verbatimcoordinatesystem
+
+```{r}
+occurrence %<>% mutate(dwc_verbatimCoordinateSystem = "UTM")
+```
+
+### verbatimCoordinates
+
+```{r}
+occurrence %<>% mutate(dwc_verbatimCoordinates = utm)
+```
+
+
+### elevation
+
+```{r}
+occurrence %<>% mutate(dwc_minimumElevationInMeters = altitude )
+```
+
 
 ### coordinateUncertaintyInMeters
 
@@ -257,7 +339,6 @@ occurrence %<>% mutate(dwc_nomenclaturalCode = "ICZN")
 
 
 
-
 ## Post-processing
 
 Only keep the Darwin Core columns:
@@ -282,6 +363,37 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "albania", "data", "processed", "occurrence.csv"), na = "")
+write_csv(occurrence, here::here("datasets", "habiprot", "data", "processed", "occurrence.csv"), na = "")
 
 ```
+
+Visualize data on a map
+
+```{r}
+occurrenceMap <- occurrence
+```
+
+```{r}
+occurrenceMap$decimalLatitude <- as.numeric(occurrenceMap$decimalLatitude)
+```
+
+```{r}
+occurrenceMap$decimalLongitude <- as.numeric(occurrenceMap$decimalLongitude)
+```
+
+```{r}
+head(occurrenceMap)
+```
+
+
+
+```{r}
+
+
+head(occurrence)
+
+mapview(occurrenceMap, xcol = "decimalLongitude", ycol = "decimalLatitude", crs = 4269, grid = FALSE)
+
+```
+
+
