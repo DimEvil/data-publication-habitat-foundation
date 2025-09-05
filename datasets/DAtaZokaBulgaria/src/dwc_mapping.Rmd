@@ -1,0 +1,451 @@
+---
+title: "Darwin Core mapping"
+subtitle: "For: datozoka Counting"
+author:
+- Dimitri Brosens
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+Load libraries:
+
+```{r}
+library(tidyverse)      # To do data science
+library(tidylog)        # To provide feedback on dplyr functions
+library(magrittr)       # To use %<>% pipes
+library(here)           # To find files
+library(janitor)        # To clean input data
+library(readxl)         # To read Excel files
+library(digest)         # To generate hashes
+library(rgbif)          # To use GBIF services
+library(lubridate)      # to transform the date
+library(sf)
+library(mapview)
+library(mgrs)
+library(stringr)
+library(uuid)
+```
+
+# Read source data
+
+Create a data frame `input_data` from the source data:
+
+```{r eval=FALSE, include=FALSE}
+input_data <- read_excel(here::here("datasets", "DAtaZokaBulgaria", "data", "raw", "DataZoka2013Trigrad_Bulgaria.xlsx"), guess_max = 400000)
+```
+
+Preview data:
+
+```{r}
+input_data %>% head(n = 5)
+```
+
+# Preprocessing
+
+## Tidy data
+
+Clean data somewhat:
+
+```{r}
+input_data %<>% remove_empty("rows")
+```
+
+
+# filter for individualCount > 0
+
+```{r}
+input_data <- input_data %>%
+  filter(`N ind` > 0)
+```
+
+
+# Darwin Core mapping
+
+```{r}
+input_data$occurrenceID <- sapply(1:nrow(input_data), function(x) UUIDgenerate())
+```
+
+
+## Create occurrence core
+
+Create a dataframe with occurrence data:
+
+```{r}
+occurrence <- input_data
+```
+
+## Term mapping
+
+Map the data to [Darwin Core Occurrence](http://rs.gbif.org/core/dwc_occurrence_2015-07-02.xml).
+
+### type
+
+```{r}
+occurrence %<>% mutate(dwc_type = "Event")
+```
+
+### language
+
+```{r}
+occurrence %<>% mutate(dwc_language = "en")
+```
+
+### license
+
+```{r}
+occurrence %<>% mutate(dwc_license = "https://creativecommons.org/licenses/by-nc/4.0/")
+```
+
+### rightsHolder
+
+```{r}
+occurrence %<>% mutate(dwc_rightsHolder = "Dutch Mammal society")
+```
+
+### datasetID
+
+```{r}
+occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10.15468/xvuzfh"
+```
+
+### institutionCode
+
+
+### datasetName
+
+```{r}
+occurrence %<>% mutate(dwc_datasetName = "Dutch Mammal society summercamp records")
+```
+
+### basisOfRecord
+
+```{r}
+occurrence %<>% mutate(dwc_basisOfRecord = "HumanObservation")
+```
+
+The following terms contain information about the taxon:
+
+### occurrenceID
+
+
+
+```{r}
+occurrence %<>% mutate(dwc_occurrenceID = occurrenceID)
+```
+
+### recordedBy
+
+```{r}
+occurrence %<>%
+  unite("recordedBy", `Observer 1`:`Observer 5`, na.rm = TRUE, sep = "; ")
+```
+
+
+
+
+### individualCount
+
+```{r}
+occurrence %<>% mutate(dwc_individualCount = ifelse(as.numeric(`N ind`) == 0, NA, as.numeric(`N ind`)))
+```
+
+### eventDate
+
+```{r}
+occurrence %<>% mutate(dwc_eventDate = Date)
+```
+
+
+```{r}
+dms_to_decimal <- function(dms) {
+  # Extract numbers
+  parts <- str_match(dms, "(\\d+)°(\\d+)'(\\d+(?:\\.\\d+)?)\"?([NSEO])")
+  degrees <- as.numeric(parts[,2])
+  minutes <- as.numeric(parts[,3])
+  seconds <- as.numeric(parts[,4])
+  hemi <- parts[,5]
+  
+  # Convert to decimal
+  dec <- degrees + minutes/60 + seconds/3600
+  
+  # Apply sign for S or W (O in your case)
+  dec[hemi %in% c("S", "O")] <- dec[hemi %in% c("S", "O")]
+  
+  return(dec)
+}
+```
+
+```{r}
+occurrence$decimalLatitude <- dms_to_decimal(occurrence$lat)
+occurrence$decimalLongitude <- dms_to_decimal(occurrence$long)
+
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+occurrence <- occurrence %<>% 
+  mutate(
+    # eerst alles naar character
+    date_char = as.character(date),
+    # detecteer getallen (Excel serials) en zet om
+    dwc_eventDate = ifelse(
+      suppressWarnings(!is.na(as.numeric(date_char))),
+      format(as.Date(as.numeric(date_char), origin = "1899-12-30"), "%Y-%m-%d"),
+      format(parse_date_time(date_char, orders = c("Ymd", "Y-m-d", "d/m/Y", "d-m-Y")), "%Y-%m-%d")
+    )
+  ) %>%
+  select(-date_char) # hulpkolom weg
+```
+
+### lifeStage
+
+```{r}
+occurrence %<>% mutate(
+    dwc_lifestage = case_when(
+      stage == "adult" ~ "adult",
+      stage == "juvenile" ~ "juvenile",
+      stage == "subadult" ~ "subadult",
+      stage == "P" ~ "pupa",
+      stage == "M" ~ "dead specimen",
+      TRUE ~ NA_character_  # alles wat niet in de lijst staat wordt NA
+    )
+  )
+```
+
+
+### samplingProtocol
+
+```{r}
+occurrence %<>% mutate(dwc_samplingProtocol = Method)
+```
+
+### samplingEffort
+ 
+
+### locationID
+
+
+### countryCode
+
+```{r}
+occurrence %<>% mutate(dwc_countryCode = "BU")
+```
+
+### continent
+
+```{r}
+occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
+```
+
+### stateProvince
+
+
+### Municipality
+
+
+### decimalLatitude
+
+
+### decimalLongitude
+
+
+
+#transformcoordinates again
+
+
+
+### geodeticDatum
+
+```{r}
+occurrence %<>% mutate(dwc_geodeticDatum = "WGS84")
+```
+
+### verbatimcoordinatesystem
+
+
+### verbatimCoordinates
+
+
+
+### elevation
+
+
+
+### coordinateUncertaintyInMeters
+
+```{r}
+occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
+```
+
+### georeferenceRemarks
+
+
+### kingdom
+
+```{r}
+occurrence %<>% mutate(dwc_kingdom = "Animalia")
+```
+
+
+
+### scientificName
+
+```{r}
+occurrence %<>% mutate(dwc_scientificName = Species)
+```
+
+
+
+### taxonRank
+
+```{r}
+occurrence %<>% mutate(dwc_taxonRank = "species")
+
+```
+
+### scientificNameAuthorship
+
+
+### nomenclaturalCode
+
+```{r}
+occurrence %<>% mutate(dwc_nomenclaturalCode = "ICZN")
+```
+
+
+
+
+
+## Post-processing
+
+# create species list
+
+```{r}
+species_list <- occurrence %>%
+  distinct(dwc_scientificName) %>%
+  pull(dwc_scientificName)
+```
+
+```{r}
+species_summary <- input_data %>%
+  group_by(Species) %>%          # Group by species
+  summarise(count = n(), .groups = "drop") %>%  # Count occurrences
+  arrange(Species)     
+```
+
+
+
+Only keep the Darwin Core columns:
+
+```{r}
+occurrence %<>% select(starts_with("dwc_"))
+```
+
+Drop the `dwc_` prefix:
+
+```{r}
+colnames(occurrence) <- str_remove(colnames(occurrence), "dwc_")
+```
+
+Preview data:
+
+```{r}
+occurrence %>% head()
+```
+
+
+Save to CSV:
+
+```{r}
+write_csv(occurrence, here::here("datasets", "DAtaZokaBulgaria", "data", "processed", "occurrence.csv"), na = "")
+
+```
+
+Visualize data on a map
+
+```{r}
+occurrenceMap <- occurrence
+```
+
+```{r}
+occurrenceMap <- occurrenceMap %>%
+  filter(!is.na(decimalLatitude) & !is.na(decimalLongitude))
+```
+
+```{r}
+occurrenceMap <- occurrenceMap %>%
+  group_by(decimalLongitude, decimalLatitude) %>%
+  summarise(occurrences = n(), .groups = "drop") %>%
+  select(decimalLongitude, decimalLatitude, occurrences)
+```
+
+
+```{r}
+occurrenceMap$decimalLatitude <- as.numeric(occurrenceMap$decimalLatitude)
+```
+
+
+```{r}
+occurrenceMap$decimalLongitude <- as.numeric(occurrenceMap$decimalLongitude)
+```
+
+```{r}
+head(occurrenceMap)
+```
+
+
+
+```{r}
+
+
+head(occurrence)
+
+mapview(occurrenceMap, xcol = "decimalLongitude", ycol = "decimalLatitude", crs = 4269, grid = FALSE)
+
+```
+
+```{r}
+occurrenceMap2 <- occurrence
+```
+
+```{r}
+occurrenceMap2 <- occurrenceMap2 %>%
+  filter(!is.na(decimalLatitude_verb) & !is.na(decimalLongitude_verb))
+```
+
+```{r}
+occurrenceMap2 <- occurrenceMap2 %>%
+  group_by(decimalLongitude_verb, decimalLatitude_verb) %>%
+  summarise(occurrences = n(), .groups = "drop") %>%
+  select(decimalLongitude_verb, decimalLatitude_verb, occurrences)
+```
+
+
+```{r}
+occurrenceMap2$decimalLatitude_verb <- as.numeric(occurrenceMap2$decimalLatitude_verb)
+```
+
+
+```{r}
+occurrenceMap2$decimalLongitude_verb <- as.numeric(occurrenceMap2$decimalLongitude_verb)
+```
+
+```{r}
+head(occurrenceMap2)
+```
+```{r}
+mapview(occurrenceMap2, xcol = "decimalLongitude_verb", ycol = "decimalLatitude_verb", crs = 4269, grid = FALSE)
+
+```
+
