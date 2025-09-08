@@ -1,6 +1,6 @@
 ---
 title: "Darwin Core mapping"
-subtitle: "For: datozoka Counting"
+subtitle: "For: datozoka MNE"
 author:
 - Dimitri Brosens
 date: "`r Sys.Date()`"
@@ -41,7 +41,7 @@ library(uuid)
 Create a data frame `input_data` from the source data:
 
 ```{r eval=FALSE, include=FALSE}
-input_data <- read_excel(here::here("datasets", "DAtaZokaBulgaria", "data", "raw", "DataZoka2013Trigrad_Bulgaria.xlsx"), guess_max = 400000)
+input_data <- read_excel(here::here("datasets", "DAtaZokaMNE", "data", "raw", "Data MNE 2014 - GBIF_dimi.xlsx"), guess_max = 400000)
 ```
 
 Preview data:
@@ -61,9 +61,9 @@ input_data %<>% remove_empty("rows")
 ```
 
 
-# filter for individualCount > 0
+# filter for individualCount > 0  (not needed here)
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 input_data <- input_data %>%
   filter(`N ind` > 0)
 ```
@@ -124,7 +124,7 @@ occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "Dutch Mammal society summercamp records")
+occurrence %<>% mutate(dwc_datasetName = "Dutch Mammal society summercamp records Montenegro")
 ```
 
 ### basisOfRecord
@@ -146,8 +146,8 @@ occurrence %<>% mutate(dwc_occurrenceID = occurrenceID)
 ### recordedBy
 
 ```{r}
-occurrence %<>%
-  unite("recordedBy", `Observer 1`:`Observer 5`, na.rm = TRUE, sep = "; ")
+occurrence %<>% mutate (dwc_recordedBy = recordedBy)
+  
 ```
 
 
@@ -156,13 +156,21 @@ occurrence %<>%
 ### individualCount
 
 ```{r}
-occurrence %<>% mutate(dwc_individualCount = ifelse(as.numeric(`N ind`) == 0, NA, as.numeric(`N ind`)))
+occurrence %<>% mutate(dwc_individualCount = "1")
 ```
+
+### occurrenceStatus
+
+```{r}
+occurrence %<>% mutate(dwc_occurrenceStatus = "present")
+```
+
+
 
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_eventDate = Date)
+occurrence %<>% mutate(dwc_eventDate = eventDate)
 ```
 
 
@@ -185,9 +193,9 @@ dms_to_decimal <- function(dms) {
 }
 ```
 
-```{r}
-occurrence$dwc_decimalLatitude <- dms_to_decimal(occurrence$lat)
-occurrence$dwc_decimalLongitude <- dms_to_decimal(occurrence$long)
+```{r eval=FALSE, include=FALSE}
+occurrence$decimalLatitude <- dms_to_decimal(occurrence$lat)
+occurrence$decimalLongitude <- dms_to_decimal(occurrence$long)
 
 ```
 
@@ -210,42 +218,33 @@ occurrence <- occurrence %<>%
 
 ### lifeStage
 
-```{r}
-occurrence %<>% mutate(
-    dwc_lifestage = case_when(
-      stage == "adult" ~ "adult",
-      stage == "juvenile" ~ "juvenile",
-      stage == "subadult" ~ "subadult",
-      stage == "P" ~ "pupa",
-      stage == "M" ~ "dead specimen",
-      TRUE ~ NA_character_  # alles wat niet in de lijst staat wordt NA
-    )
-  )
-```
-
 
 ### samplingProtocol
 
-```{r}
-occurrence %<>% mutate(dwc_samplingProtocol = Method)
-```
 
 ### samplingEffort
  
 
 ### locationID
 
+### locality
+
+
+```{r}
+occurrence %<>% mutate(dwc_locality = "Biogradska Gora")
+```
+
 
 ### countryCode
 
 ```{r}
-occurrence %<>% mutate(dwc_countryCode = "BU")
+occurrence %<>% mutate(dwc_countryCode = "ME")
 ```
 
 ### continent
 
 ```{r}
-occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
+occurrence %<>% mutate(dwc_continent = "Europe") # e.g. "Belgium = BE"
 ```
 
 ### stateProvince
@@ -255,10 +254,16 @@ occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
 
 
 ### decimalLatitude
+```{r}
+occurrence %<>% mutate( dwc_decimalLatitude = decimalLatitude ) #
+```
 
 
 ### decimalLongitude
 
+```{r}
+occurrence %<>% mutate(dwc_decimalLongitude = decimalLongitude) # e.g. "Belgium = BE"
+```
 
 
 #transformcoordinates again
@@ -285,7 +290,7 @@ occurrence %<>% mutate(dwc_geodeticDatum = "WGS84")
 ### coordinateUncertaintyInMeters
 
 ```{r}
-occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
+occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "300")
 ```
 
 ### georeferenceRemarks
@@ -302,7 +307,7 @@ occurrence %<>% mutate(dwc_kingdom = "Animalia")
 ### scientificName
 
 ```{r}
-occurrence %<>% mutate(dwc_scientificName = Species)
+occurrence %<>% mutate(dwc_scientificName = scientificName)
 ```
 
 
@@ -339,9 +344,9 @@ species_list <- occurrence %>%
 
 ```{r}
 species_summary <- input_data %>%
-  group_by(Species) %>%          # Group by species
+  group_by(scientificName) %>%          # Group by species
   summarise(count = n(), .groups = "drop") %>%  # Count occurrences
-  arrange(Species)     
+  arrange(scientificName)     
 ```
 
 
@@ -368,7 +373,7 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "DAtaZokaBulgaria", "data", "processed", "occurrence.csv"), na = "")
+write_csv(occurrence, here::here("datasets", "DAtaZokaMNE", "data", "processed", "occurrence.csv"), na = "")
 
 ```
 

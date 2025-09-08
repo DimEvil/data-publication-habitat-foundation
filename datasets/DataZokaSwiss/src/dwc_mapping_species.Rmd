@@ -1,6 +1,6 @@
 ---
-title: "Darwin Core mapping"
-subtitle: "For: datozoka Counting"
+title: "Darwin Core mapping species"
+subtitle: "For: datozoka Swiss species"
 author:
 - Dimitri Brosens
 date: "`r Sys.Date()`"
@@ -40,15 +40,31 @@ library(uuid)
 
 Create a data frame `input_data` from the source data:
 
-```{r eval=FALSE, include=FALSE}
-input_data <- read_excel(here::here("datasets", "DAtaZokaBulgaria", "data", "raw", "DataZoka2013Trigrad_Bulgaria.xlsx"), guess_max = 400000)
+```{r}
+input_data_obs <- read_excel(here::here("datasets", "DAtaZokaSwiss", "data", "raw", "species.xlsx"), guess_max = 400000)
 ```
+
+```{r}
+input_data_locality <- read_excel(here::here("datasets", "DAtaZokaSwiss", "data", "raw", "locaties.xlsx"), guess_max = 400000)
+```
+
+
 
 Preview data:
 
 ```{r}
-input_data %>% head(n = 5)
+input_data_obs %>% head(n = 5)
 ```
+
+```{r}
+input_data_locality %>% head(n = 5)
+```
+
+
+```{r eval=FALSE, include=FALSE}
+input_data_obs <- inner_join(input_data_obs, input_data_locality, by = c("LocationCode"))
+```
+
 
 # Preprocessing
 
@@ -57,22 +73,22 @@ input_data %>% head(n = 5)
 Clean data somewhat:
 
 ```{r}
-input_data %<>% remove_empty("rows")
+input_data_obs %<>% remove_empty("rows")
 ```
 
 
 # filter for individualCount > 0
 
 ```{r}
-input_data <- input_data %>%
-  filter(`N ind` > 0)
+input_data_obs <- input_data_obs %>%
+  filter(number > 0)
 ```
 
 
 # Darwin Core mapping
 
 ```{r}
-input_data$occurrenceID <- sapply(1:nrow(input_data), function(x) UUIDgenerate())
+input_data_obs$occurrenceID <- sapply(1:nrow(input_data_obs), function(x) UUIDgenerate())
 ```
 
 
@@ -81,7 +97,7 @@ input_data$occurrenceID <- sapply(1:nrow(input_data), function(x) UUIDgenerate()
 Create a dataframe with occurrence data:
 
 ```{r}
-occurrence <- input_data
+occurrence <- input_data_obs
 ```
 
 ## Term mapping
@@ -124,7 +140,7 @@ occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "Dutch Mammal society summercamp records")
+occurrence %<>% mutate(dwc_datasetName = "Dutch Mammal society summercamp records Swiss: other")
 ```
 
 ### basisOfRecord
@@ -146,8 +162,7 @@ occurrence %<>% mutate(dwc_occurrenceID = occurrenceID)
 ### recordedBy
 
 ```{r}
-occurrence %<>%
-  unite("recordedBy", `Observer 1`:`Observer 5`, na.rm = TRUE, sep = "; ")
+occurrence %<>% mutate(dwc_recordedBy = `naam observer`)
 ```
 
 
@@ -156,17 +171,17 @@ occurrence %<>%
 ### individualCount
 
 ```{r}
-occurrence %<>% mutate(dwc_individualCount = ifelse(as.numeric(`N ind`) == 0, NA, as.numeric(`N ind`)))
+occurrence %<>% mutate(dwc_individualCount = ifelse(as.numeric(`number`) == 0, NA, as.numeric(`number`)))
 ```
 
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_eventDate = Date)
+occurrence %<>% mutate(dwc_eventDate = `date observation`)
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 dms_to_decimal <- function(dms) {
   # Extract numbers
   parts <- str_match(dms, "(\\d+)°(\\d+)'(\\d+(?:\\.\\d+)?)\"?([NSEO])")
@@ -184,14 +199,35 @@ dms_to_decimal <- function(dms) {
   return(dec)
 }
 ```
+# decimalLongitude
+
 
 ```{r}
-occurrence$dwc_decimalLatitude <- dms_to_decimal(occurrence$lat)
-occurrence$dwc_decimalLongitude <- dms_to_decimal(occurrence$long)
-
+occurrence %<>% mutate(dwc_decimalLongitude = x)
 ```
 
 
+# decimalLatitude
+
+
+```{r}
+occurrence %<>% mutate(dwc_decimalLatitude = y)
+```
+
+
+### altitude
+
+
+```{r}
+##occurrence %<>% mutate(dwc_maximumElevationInMeters = `Altitude (m)`)
+```
+
+### locationID
+
+
+```{r}
+##occurrence %<>% mutate(dwc_locationID = LocationCode)
+```
 
 ```{r eval=FALSE, include=FALSE}
 occurrence <- occurrence %<>% 
@@ -208,26 +244,40 @@ occurrence <- occurrence %<>%
   select(-date_char) # hulpkolom weg
 ```
 
-### lifeStage
+### sex
 
 ```{r}
 occurrence %<>% mutate(
-    dwc_lifestage = case_when(
-      stage == "adult" ~ "adult",
-      stage == "juvenile" ~ "juvenile",
-      stage == "subadult" ~ "subadult",
-      stage == "P" ~ "pupa",
-      stage == "M" ~ "dead specimen",
+    dwc_sex = case_when(
+      sex == "FEMALE" ~ "female",
+      sex == "juvenile" ~ "juvenile",
+      sex == "subadult" ~ "subadult",
+      sex == "P" ~ "pupa",
+      sex == "M" ~ "dead specimen",
+      sex == "MALE" ~ "male",
+      sex == "UNKNOWN" ~ "unknown",
       TRUE ~ NA_character_  # alles wat niet in de lijst staat wordt NA
     )
   )
 ```
 
 
+### behaviour
+
+
+```{r}
+occurrence %<>% mutate(dwc_behaviour = activity)
+```
+
+
+### sex
+
+
+
 ### samplingProtocol
 
 ```{r}
-occurrence %<>% mutate(dwc_samplingProtocol = Method)
+##occurrence %<>% mutate(dwc_samplingProtocol = Method)
 ```
 
 ### samplingEffort
@@ -239,14 +289,21 @@ occurrence %<>% mutate(dwc_samplingProtocol = Method)
 ### countryCode
 
 ```{r}
-occurrence %<>% mutate(dwc_countryCode = "BU")
+occurrence %<>% mutate(dwc_countryCode = "CH")
 ```
 
 ### continent
 
 ```{r}
-occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
+occurrence %<>% mutate(dwc_continent = "Europe") # e.g. ""
 ```
+
+### locality
+
+```{r}
+##occurrence %<>% mutate(dwc_locality = `Location name`) # e.g.
+```
+
 
 ### stateProvince
 
@@ -297,6 +354,14 @@ occurrence %<>% mutate(dwc_coordinateUncertaintyInMeters = "30")
 occurrence %<>% mutate(dwc_kingdom = "Animalia")
 ```
 
+```{r}
+occurrence %<>% mutate(
+    dwc_kingdom = case_when(
+      oms_eng == "plants" ~ "Plantae",
+      TRUE ~ "Animalia"  # alles wat niet in de lijst staat wordt NA
+    )
+  )
+```
 
 
 ### scientificName
@@ -318,10 +383,6 @@ occurrence %<>% mutate(dwc_taxonRank = "species")
 
 
 ### nomenclaturalCode
-
-```{r}
-occurrence %<>% mutate(dwc_nomenclaturalCode = "ICZN")
-```
 
 
 
@@ -368,7 +429,7 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "DAtaZokaBulgaria", "data", "processed", "occurrence.csv"), na = "")
+write_csv(occurrence, here::here("datasets", "DAtaZokaSwiss", "data", "processed", "occurrence_species.csv"), na = "")
 
 ```
 

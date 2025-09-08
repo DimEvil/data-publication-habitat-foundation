@@ -1,6 +1,6 @@
 ---
 title: "Darwin Core mapping"
-subtitle: "For: datozoka Counting"
+subtitle: "For: datozoka Swiss"
 author:
 - Dimitri Brosens
 date: "`r Sys.Date()`"
@@ -40,15 +40,31 @@ library(uuid)
 
 Create a data frame `input_data` from the source data:
 
-```{r eval=FALSE, include=FALSE}
-input_data <- read_excel(here::here("datasets", "DAtaZokaBulgaria", "data", "raw", "DataZoka2013Trigrad_Bulgaria.xlsx"), guess_max = 400000)
+```{r}
+input_data_obs <- read_excel(here::here("datasets", "DAtaZokaSwiss", "data", "raw", "mammals.xlsx"), guess_max = 400000)
 ```
+
+```{r}
+input_data_locality <- read_excel(here::here("datasets", "DAtaZokaSwiss", "data", "raw", "locaties.xlsx"), guess_max = 400000)
+```
+
+
 
 Preview data:
 
 ```{r}
-input_data %>% head(n = 5)
+input_data_obs %>% head(n = 5)
 ```
+
+```{r}
+input_data_locality %>% head(n = 5)
+```
+
+
+```{r}
+input_data <- inner_join(input_data_obs, input_data_locality, by = c("LocationCode"))
+```
+
 
 # Preprocessing
 
@@ -65,7 +81,7 @@ input_data %<>% remove_empty("rows")
 
 ```{r}
 input_data <- input_data %>%
-  filter(`N ind` > 0)
+  filter(`N of ind` > 0)
 ```
 
 
@@ -124,7 +140,7 @@ occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10
 ### datasetName
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetName = "Dutch Mammal society summercamp records")
+occurrence %<>% mutate(dwc_datasetName = "Dutch Mammal society summercamp records Swiss")
 ```
 
 ### basisOfRecord
@@ -147,7 +163,7 @@ occurrence %<>% mutate(dwc_occurrenceID = occurrenceID)
 
 ```{r}
 occurrence %<>%
-  unite("recordedBy", `Observer 1`:`Observer 5`, na.rm = TRUE, sep = "; ")
+  unite("recordedBy", `Observer 1`:`Observer 4`, na.rm = TRUE, sep = "; ")
 ```
 
 
@@ -156,17 +172,17 @@ occurrence %<>%
 ### individualCount
 
 ```{r}
-occurrence %<>% mutate(dwc_individualCount = ifelse(as.numeric(`N ind`) == 0, NA, as.numeric(`N ind`)))
+occurrence %<>% mutate(dwc_individualCount = ifelse(as.numeric(`N of ind`) == 0, NA, as.numeric(`N of ind`)))
 ```
 
 ### eventDate
 
 ```{r}
-occurrence %<>% mutate(dwc_eventDate = Date)
+occurrence %<>% mutate(dwc_eventDate = `Start date`)
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 dms_to_decimal <- function(dms) {
   # Extract numbers
   parts <- str_match(dms, "(\\d+)°(\\d+)'(\\d+(?:\\.\\d+)?)\"?([NSEO])")
@@ -184,14 +200,35 @@ dms_to_decimal <- function(dms) {
   return(dec)
 }
 ```
+# decimalLongitude
+
 
 ```{r}
-occurrence$dwc_decimalLatitude <- dms_to_decimal(occurrence$lat)
-occurrence$dwc_decimalLongitude <- dms_to_decimal(occurrence$long)
-
+occurrence %<>% mutate(dwc_decimalLongitude = Latitude.y)
 ```
 
 
+# decimalLatitude
+
+
+```{r}
+occurrence %<>% mutate(dwc_decimalLatitude = Longitude.y)
+```
+
+
+### altitude
+
+
+```{r}
+occurrence %<>% mutate(dwc_maximumElevationInMeters = `Altitude (m)`)
+```
+
+### locationID
+
+
+```{r}
+occurrence %<>% mutate(dwc_locationID = LocationCode)
+```
 
 ```{r eval=FALSE, include=FALSE}
 occurrence <- occurrence %<>% 
@@ -213,15 +250,23 @@ occurrence <- occurrence %<>%
 ```{r}
 occurrence %<>% mutate(
     dwc_lifestage = case_when(
-      stage == "adult" ~ "adult",
-      stage == "juvenile" ~ "juvenile",
-      stage == "subadult" ~ "subadult",
-      stage == "P" ~ "pupa",
-      stage == "M" ~ "dead specimen",
+      Sex == "adult" ~ "adult",
+      Sex == "juvenile" ~ "juvenile",
+      Sex == "subadult" ~ "subadult",
+      Sex == "P" ~ "pupa",
+      Sex == "M" ~ "dead specimen",
       TRUE ~ NA_character_  # alles wat niet in de lijst staat wordt NA
     )
   )
 ```
+
+
+### sex
+
+```{r}
+occurrence %<>% mutate(dwc_sex = Age)
+```
+
 
 
 ### samplingProtocol
@@ -239,14 +284,21 @@ occurrence %<>% mutate(dwc_samplingProtocol = Method)
 ### countryCode
 
 ```{r}
-occurrence %<>% mutate(dwc_countryCode = "BU")
+occurrence %<>% mutate(dwc_countryCode = "CH")
 ```
 
 ### continent
 
 ```{r}
-occurrence %<>% mutate(continent = "Europe") # e.g. "Belgium = BE"
+occurrence %<>% mutate(dwc_continent = "Europe") # e.g. ""
 ```
+
+### locality
+
+```{r}
+occurrence %<>% mutate(dwc_locality = `Location name`) # e.g.
+```
+
 
 ### stateProvince
 
@@ -368,7 +420,7 @@ occurrence %>% head()
 Save to CSV:
 
 ```{r}
-write_csv(occurrence, here::here("datasets", "DAtaZokaBulgaria", "data", "processed", "occurrence.csv"), na = "")
+write_csv(occurrence, here::here("datasets", "DAtaZokaSwiss", "data", "processed", "occurrence_mammals.csv"), na = "")
 
 ```
 
