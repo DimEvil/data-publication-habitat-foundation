@@ -115,7 +115,7 @@ occurrence %<>% mutate(dwc_rightsHolder = "Dutch Mammal society")
 ### datasetID
 
 ```{r}
-occurrence %<>% mutate(dwc_datasetID = "placeholder") # e.g. "https://doi.org/10.15468/xvuzfh"
+occurrence %<>% mutate(dwc_datasetID = "https://doi.org/10.15468/w5rg22") # e.g. "https://doi.org/10.15468/xvuzfh"
 ```
 
 ### institutionCode
@@ -239,7 +239,7 @@ occurrence %<>% mutate(dwc_samplingProtocol = Method)
 ### countryCode
 
 ```{r}
-occurrence %<>% mutate(dwc_countryCode = "BU")
+occurrence %<>% mutate(dwc_countryCode = "BG")
 ```
 
 ### continent
